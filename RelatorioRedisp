@@ -1,0 +1,350 @@
+import imaplib
+import email
+import os
+import getpass
+from datetime import datetime
+import sys
+import time
+
+FROM_EMAIL = "felipe.martins@ezly.com.br" #LOGIN GMAIL
+FROM_PWD = "Chi123n@" #SENHA GMAIL
+SMTP_SERVER = "imap.gmail.com" #PADRÃO
+SMTP_PORT = 993 #PADRÃO
+
+username = getpass.getuser() #NOME DE USUÁRIO DO S.O
+
+def read_email_escolhedata():
+    try:
+        mail = imaplib.IMAP4_SSL(SMTP_SERVER)
+        mail.login(FROM_EMAIL, FROM_PWD)
+        mail.select('REDISP_CIELO', readonly=False)
+
+        type_mail, data = mail.search(None, 'ALL')
+        mail_ids = data[0]
+
+        id_list = mail_ids.split()
+        first_email_id = int(id_list[0])
+        latest_email_id = int(id_list[-1])
+        #print("Coletando Dados {} de {}.\n\n".format(first_email_id, latest_email_id))
+
+        print('Formato de entrada -> DD/MM/AAAA')
+        pesquisa = input('Digite a data a ser pesquisada: ')  # GERA RELATORIO DA DATA ESCOLHIDA
+        print('Aguarde...\n')
+
+        for i in range(latest_email_id, first_email_id, -1):
+
+            time.sleep(0.01)
+            sys.stdout.write("\rColetando Dados... {}%".format(round(-((i - latest_email_id) / latest_email_id) * 100) + 1))
+            sys.stdout.flush()
+
+            typ, data = mail.fetch(str.encode(str(i)), '(RFC822)')
+
+            for response_part in data:
+                if not isinstance(response_part, tuple):
+                    continue
+
+                msg = email.message_from_string(response_part[1].decode('utf-8'))
+                mail_str = str(msg)
+
+                # Se e-mail não contém a estrutura que precisamos, não processa
+                # if mail_str.find('<td class="luceeH0">SQL</td>') <= 1:
+                #    continue
+
+                email_subject = msg['subject']
+                email_from = msg['from']
+
+                # INFORMAÇÃO DE DETALHE
+                detail_pos_ini = mail_str.find('=09')
+                detail_pos_inter = mail_str.find('=09', detail_pos_ini)
+                detail_pos_fim = mail_str.find('At.', detail_pos_inter)
+                detail_str = mail_str[detail_pos_inter + 20:detail_pos_fim]
+
+                # QUEBRA DE ARQUIVO
+                conteudo = detail_str.split('=09')
+                conteudo1 = ','.join(conteudo). \
+                    replace('Solicitante: ', ''). \
+                    replace(',Data e Hora da Solicita=C3=A7=C3=A3o: ', ''). \
+                    replace(',SFG Business Process: ', ''). \
+                    replace(',Caixa postal de redisponibiliza=C3=A7=C3=A3o: ', ''). \
+                    replace(',Dia do extrato solicitado: ', ''). \
+                    replace('In=\nbox', 'Inbox')
+
+                conteudo2 = conteudo1.split('\n')
+
+                # CRIANDO AS VARIAVEIS
+                usuario = conteudo2[0]
+                dtSolicitacao = conteudo2[1].split(' ')
+                numBp = conteudo2[2]
+                cxPostal = conteudo2[3].replace('/CIELO/EDI/', '').replace('/Inbox', '')
+                if '/' in conteudo2[4]:
+                    dtExtrato = conteudo2[4]
+                else:
+                    dtExtrato = conteudo2[5]
+
+                # ************ TESTE CONSOLE **********
+
+                '''
+                print(usuario)
+                print(dtSolicitacao[0])
+                print(numBp)
+                print(cxPostal)
+                print(dtExtrato)
+                print('=========')
+                '''
+
+                # *************************************
+
+                # GERA ARQUIVO TXT
+
+                if pesquisa == str(dtSolicitacao[0]):
+                    nomeArq = (pesquisa.replace('/', '') + '_' + '_REDISPS')
+                    caminho = ("c:/Users/"+username+"/Desktop/")
+                    try:
+                        arquivo = open(caminho + nomeArq + '.txt', 'r+')  # Abra o arquivo (leitura)
+                    except FileNotFoundError:
+                        arquivo = open(caminho + nomeArq + '.txt', 'w+')
+
+                    arquivo1 = arquivo.readlines()
+                    arquivo1.append(usuario + ';' + dtSolicitacao[
+                        0] + ';' + numBp + ';' + cxPostal + ';' + dtExtrato + '\n')  # insira seu conteúdo
+                    arquivo = open(caminho + nomeArq + '.txt', 'w+')  # Abre novamente o arquivo (escrita)
+                    arquivo.writelines(arquivo1)  # escreva o conteúdo criado anteriormente nele
+                    arquivo.close()
+
+        mail.logout()
+
+    except Exception as e:
+        print(e)
+def read_email_dataatual():
+    now = datetime.now().date().strftime('%d/%m/%Y') #GERA RELATORIO DIA ATUAL
+    try:
+        mail = imaplib.IMAP4_SSL(SMTP_SERVER)
+        mail.login(FROM_EMAIL, FROM_PWD)
+        mail.select('REDISP_CIELO', readonly=False)
+
+        type_mail, data = mail.search(None, 'ALL')
+        mail_ids = data[0]
+
+        id_list = mail_ids.split()
+        first_email_id = int(id_list[0])
+        latest_email_id = int(id_list[-1])
+        #print("Coletando Dados {} de {}.\n\n".format(first_email_id, latest_email_id))
+
+        print('Aguarde...\n')
+        for i in range(latest_email_id, first_email_id, -1):
+
+            time.sleep(0.01)
+            sys.stdout.write("\rColetando Dados... {}%".format(round(-((i-latest_email_id)/latest_email_id)*100)+1))
+            sys.stdout.flush()
+
+            typ, data = mail.fetch(str.encode(str(i)), '(RFC822)')
+
+            for response_part in data:
+                if not isinstance(response_part, tuple):
+                    continue
+
+                msg = email.message_from_string(response_part[1].decode('utf-8'))
+                mail_str = str(msg)
+
+                email_subject = msg['subject']
+                email_from = msg['from']
+
+                # INFORMAÇÃO DE DETALHE
+                detail_pos_ini = mail_str.find('=09')
+                detail_pos_inter = mail_str.find('=09', detail_pos_ini)
+                detail_pos_fim = mail_str.find('At.', detail_pos_inter)
+                detail_str = mail_str[detail_pos_inter + 20:detail_pos_fim]
+
+                # QUEBRA DE ARQUIVO
+                conteudo = detail_str.split('=09')
+                conteudo1 = ','.join(conteudo). \
+                    replace('Solicitante: ', ''). \
+                    replace(',Data e Hora da Solicita=C3=A7=C3=A3o: ', ''). \
+                    replace(',SFG Business Process: ', ''). \
+                    replace(',Caixa postal de redisponibiliza=C3=A7=C3=A3o: ', ''). \
+                    replace(',Dia do extrato solicitado: ', ''). \
+                    replace('In=\nbox', 'Inbox')
+
+                conteudo2 = conteudo1.split('\n')
+
+                # CRIANDO AS VARIAVEIS
+                usuario = conteudo2[0]
+                dtSolicitacao = conteudo2[1].split(' ')
+                numBp = conteudo2[2]
+                cxPostal = conteudo2[3].replace('/CIELO/EDI/', '').replace('/Inbox', '')
+                if '/' in conteudo2[4]:
+                    dtExtrato = conteudo2[4]
+                else:
+                    dtExtrato = conteudo2[5]
+
+                # ************ TESTE CONSOLE **********
+
+                '''
+                print(usuario)
+                print(dtSolicitacao[0])
+                print(numBp)
+                print(cxPostal)
+                print(dtExtrato)
+                print('=========')
+                '''
+
+                # *************************************
+
+                # GERA ARQUIVO TXT
+
+                if now == str(dtSolicitacao[0]):
+                    nomeArq = (now.replace('/', '') + '_' + '_REDISPS')
+                    caminho = ("c:/Users/"+username+"/Desktop/")
+                    try:
+                        arquivo = open(caminho + nomeArq + '.txt', 'r+')  # Abra o arquivo (leitura)
+                    except FileNotFoundError:
+                        arquivo = open(caminho + nomeArq + '.txt', 'w+')
+
+                    arquivo1 = arquivo.readlines()
+                    arquivo1.append(usuario + ';' + dtSolicitacao[
+                        0] + ';' + numBp + ';' + cxPostal + ';' + dtExtrato + '\n')  # insira seu conteúdo
+                    arquivo = open(caminho + nomeArq + '.txt', 'w+')  # Abre novamente o arquivo (escrita)
+                    arquivo.writelines(arquivo1)  # escreva o conteúdo criado anteriormente nele
+                    arquivo.close()
+
+        mail.logout()
+
+    except Exception as e:
+        print(e)
+def read_email_escolhemes():
+    try:
+        mail = imaplib.IMAP4_SSL(SMTP_SERVER)
+        mail.login(FROM_EMAIL, FROM_PWD)
+        mail.select('REDISP_CIELO', readonly=False)
+
+        type_mail, data = mail.search(None, 'ALL')
+        mail_ids = data[0]
+
+        id_list = mail_ids.split()
+        first_email_id = int(id_list[0])
+        latest_email_id = int(id_list[-1])
+        #print("Coletando Dados {} de {}.\n\n".format(first_email_id, latest_email_id))
+
+        print('Formato de entrada -> MM')
+        pesquisa = input('Digite o mes a ser pesquisado: ')  # GERA RELATORIO DA DATA ESCOLHIDA
+        print('Aguarde...\n')
+
+        for i in range(latest_email_id, first_email_id, -1):
+
+            time.sleep(0.01)
+            sys.stdout.write("\rColetando Dados... {}% ".format(round(((latest_email_id - i) / latest_email_id) * 100) +1))
+            sys.stdout.flush()
+
+
+            typ, data = mail.fetch(str.encode(str(i)), '(RFC822)')
+
+            for response_part in data:
+                if not isinstance(response_part, tuple):
+                    continue
+
+                msg = email.message_from_string(response_part[1].decode('utf-8'))
+                mail_str = str(msg)
+
+                # Se e-mail não contém a estrutura que precisamos, não processa
+                # if mail_str.find('<td class="luceeH0">SQL</td>') <= 1:
+                #    continue
+
+                email_subject = msg['subject']
+                email_from = msg['from']
+
+                # INFORMAÇÃO DE DETALHE
+                detail_pos_ini = mail_str.find('=09')
+                detail_pos_inter = mail_str.find('=09', detail_pos_ini)
+                detail_pos_fim = mail_str.find('At.', detail_pos_inter)
+                detail_str = mail_str[detail_pos_inter + 20:detail_pos_fim]
+
+                # QUEBRA DE ARQUIVO
+                conteudo = detail_str.split('=09')
+                conteudo1 = ','.join(conteudo). \
+                    replace('Solicitante: ', ''). \
+                    replace(',Data e Hora da Solicita=C3=A7=C3=A3o: ', ''). \
+                    replace(',SFG Business Process: ', ''). \
+                    replace(',Caixa postal de redisponibiliza=C3=A7=C3=A3o: ', ''). \
+                    replace(',Dia do extrato solicitado: ', ''). \
+                    replace('In=\nbox', 'Inbox')
+
+                conteudo2 = conteudo1.split('\n')
+
+                # CRIANDO AS VARIAVEIS
+                usuario = conteudo2[0]
+                dtSolicitacao = conteudo2[1].split(' ')
+                numBp = conteudo2[2]
+                cxPostal = conteudo2[3].replace('/CIELO/EDI/', '').replace('/Inbox', '')
+                if '/' in conteudo2[4]:
+                    dtExtrato = conteudo2[4]
+                else:
+                    dtExtrato = conteudo2[5]
+
+                # ************ TESTE CONSOLE **********
+
+                '''
+                print(usuario)
+                print(dtSolicitacao[0])
+                print(numBp)
+                print(cxPostal)
+                print(dtExtrato)
+                print('=========')
+                '''
+
+                # *************************************
+
+                # GERA ARQUIVO TXT (deu certo)
+
+                mes = dtSolicitacao[0].split('/')
+                if pesquisa == str(mes[1]):
+                    nomeArq = ('MES_'+pesquisa + '_' + '_REDISPS')
+                    caminho = ("c:/Users/"+username+"/Desktop/")
+                    try:
+                        arquivo = open(caminho + nomeArq + '.txt', 'r+')  # Abra o arquivo (leitura)
+                    except FileNotFoundError:
+                        arquivo = open(caminho + nomeArq + '.txt', 'w+')
+
+                    arquivo1 = arquivo.readlines()
+                    arquivo1.append(usuario + ';' + dtSolicitacao[
+                        0] + ';' + numBp + ';' + cxPostal + ';' + dtExtrato + '\n')  # insira seu conteúdo
+                    arquivo = open(caminho + nomeArq + '.txt', 'w+')  # Abre novamente o arquivo (escrita)
+                    arquivo.writelines(arquivo1)  # escreva o conteúdo criado anteriormente nele
+                    arquivo.close()
+
+        mail.logout()
+
+    except Exception as e:
+        print(e)
+
+# MENU PRINCIPAL
+opc = 'S'
+while opc == 'S':
+    print("=========================================")
+    print("     RELATÓRIO DE REDISPONIBILIZAÇÕES    ")
+    print("=========================================")
+    print("[1] - DATA ATUAL")
+    print("[2] - ESCOLHA A DATA")
+    print("[3] - ESCOLHA O MES")
+    print(" ")
+    res = int(input("Opcao: "))
+
+    if res == 1:
+
+        read_email_dataatual()
+        print('\n\n====== Relatório Gerado com SUCESSO!!! ======')
+        opc = input('Deseja gerar outro relatório? S/N -> ').upper()
+
+
+    elif res == 2:
+        read_email_escolhedata()
+        print('\n\n====== Relatório Gerado com SUCESSO!!! ======')
+        opc = input('Deseja gerar outro relatório? S/N -> ').upper()
+
+    elif res == 3:
+        read_email_escolhemes()
+        print('\n\n====== Relatório Gerado com SUCESSO!!! ======')
+        opc = input('Deseja gerar outro relatório? S/N -> ').upper()
+
+    else:
+        opc = input('Opcao invalida!!! Fechando o programa')
+        os.system('exit')
