@@ -1,0 +1,345 @@
+#=============================================================================
+#!/usr/bin/env python
+#title           :ProgramaB2B.py
+#description     :Programa para que lê arquivos de log com estatisticas das
+#                 transmissões B2B e organiza em um novo arquivo (.csv ou .txt)
+#                 para análise detalhada dos dados
+#author          :Felipe Martins
+#date            :19.11.2018
+#version         :0.2
+#usage           :
+#notes           : fase de testes de versão
+#python_version  :3.7.1
+#=============================================================================
+
+import os
+import getpass
+from datetime import datetime
+import sys
+import time
+from tkinter import *
+import tkinter as Tkinter
+from tkinter import ttk, messagebox
+from tkinter.filedialog import askopenfilename
+
+root = Tk()
+now = datetime.now().date().strftime('%d/%m/%Y')
+username = getpass.getuser()  # NOME DE USUÁRIO DO S.O
+
+Title = root.title("Gerar Arquivo Estatisticas - B2BCD")
+w = 500
+h = 300
+x = 100
+y = 100
+root.geometry("%dx%d+%d+%d" % (w, h, x, y))
+
+sys._enablelegacywindowsfsencoding()
+
+separator = Frame(height=2, bd=2, relief=SUNKEN)
+separator1 = Frame(bd=2, relief=SUNKEN, height=2)
+
+label1 = ttk.Label(text='\nEscolha o ARQUIVO que deseja abrir\n',anchor=W, justify=CENTER, font=("Helvetica", 12))
+label1.pack()
+
+
+def progresso(totReg,contReg):
+    time.sleep(0.01)
+    sys.stdout.write("\rColetando Dados... {} de {} ".format(contReg, totReg) +
+                     "...     {:.2f}%     Aguarde...".format(round(((contReg / totReg) * 100),2)))
+    sys.stdout.flush()
+
+def gerarArquivoWin():
+    start_time = time.time()
+    contLinha = 0
+    recordId = []
+    processName = []
+    processNumber = []
+    startTime = []
+    startDate = []
+    stopTime = []
+    stopDate = []
+    snode = []
+    completionCode = []
+    messageId = []
+    messageText = []
+    srcFile = []
+    destFile = []
+    bytesWritten = []
+    arquivo = open(nomeArquivo, 'r+')
+    contReg = 0
+
+    with arquivo as f:
+        totReg = f.read().count('Record Id')
+    arquivo.close()
+
+    arquivo = open(nomeArquivo, 'r+')
+    for linha in arquivo:
+        contLinha += 1
+        if linha.__contains__('Record Id         =>'):
+            recordId = linha.replace(' ', '').replace('RecordId=>', '').replace('\n', '')
+            # print(recordId)
+        if linha.__contains__('Process Name      =>'):
+            processName = linha.replace(' ', '').replace('ProcessName=>', '').replace('StatLogTime=>', ';').split(';')[0]
+            # print(processName)
+        if linha.__contains__('Process Number    =>'):
+            processNumber = \
+            linha.replace(' ', '').replace('ProcessNumber=>', '').replace('StatLogDate=>', ';').split(';')[0]
+            # print(processNumber)
+        if linha.__contains__('Start Time        =>'):
+            startTime = linha.replace(' ', '').replace('StartTime=>', '').replace('StartDate=>', ';').split(';')[0]
+            # print(startTime)
+        if linha.__contains__('Start Date     =>'):
+            startDate = linha.replace(' ', '').replace('StartDate=>', ';').replace('StartTime=>', '').split(';')[
+                1].replace('\n', '')
+            # print(startDate)
+        if linha.__contains__('Stop Time         =>'):
+            stopTime = linha.replace(' ', '').replace('StopTime=>', '').replace('StopDate=>', ';').split(';')[0]
+            # print(stopTime)
+        if linha.__contains__('Stop Date      =>'):
+            stopDate = linha.replace(' ', '').replace('StopDate=>', ';').replace('StopTime=>', '').split(';')[
+                1].replace('\n', '')
+            # print(stopDate)
+        if linha.__contains__('SNODE             =>'):
+            snode = linha.replace(' ', '').replace('SNODE=>', '').replace('\n', '')
+            # print(snode)
+        if linha.__contains__('Completion Code   =>'):
+            completionCode = linha.replace(' ', '').replace('CompletionCode=>', '').replace('\n', '')
+            # print(completionCode)
+        if linha.__contains__('Message Id        =>'):
+            messageId = linha.replace(' ', '').replace('MessageId=>', '').replace('\n', '')
+            # print(messageId)
+        if linha.__contains__('Message Text      =>'):
+            messageText = linha.replace('Message Text      => ', '').replace('\n', '')
+            # print(messageText)
+        if linha.__contains__('Src File          =>'):
+            srcFile = linha.replace(' ', '').replace('SrcFile=>', '').replace('\n', '')
+            # print(srcFile)
+        if linha.__contains__('Dest File         =>'):
+            destFile = linha.replace(' ', '').replace('DestFile=>', '').replace('\\', '/').replace('\n', '')
+            # print(destFile)
+        if linha.__contains__('Bytes Written    =>'):
+            bytesWritten = linha.replace(' ', '').replace('BytesWritten=>', ';').replace('BytesRead=>', '').split(';')[
+                1].replace('\n', '')
+
+        # print(bytesWritten)
+        if linha.__contains__('Bytes Written    =>'):
+            nomeArq = (now.replace('/', '') + '_' + 'B2BCD_STATISTICS_CDWINDOWS')
+            caminho = ("c:/Users/" + username + "/Desktop/")
+            contReg += 1
+            try:
+                arquivo = open(caminho + nomeArq + '.csv', 'r+')  # Abra o arquivo (leitura)
+            except FileNotFoundError:
+                arquivo = open(caminho + nomeArq + '.csv', 'w+')
+
+            head = ("RecordId;Process Name;Process Number;Start Time;Start Date;Stop Time;Stop Date;SNODE;Completion Code;"
+                "Message Id;Message Text;src File;Dest File;bytes Written\n")
+            arquivo1 = arquivo.readlines()
+            if arquivo1.__contains__(head):
+                arquivo1.append(
+                    str(recordId) + ';' + str(processName) + ';' + str(processNumber) + ';' + str(startTime) + ';' + str(
+                        startDate) + ';' + str(stopTime) +
+                    ';' + str(stopDate) + ';' + str(snode) + ';' + str(completionCode) + ';' + str(messageId) + ';' + str(
+                        messageText) + ';' + str(srcFile) +
+                    ';' + str(destFile) + ';' + str(bytesWritten) + '\n')  # insira seu conteúdo
+                arquivo = open(caminho + nomeArq + '.csv', 'w+')  # Abre novamente o arquivo (escrita)
+                arquivo.writelines(arquivo1)  # escreva o conteúdo criado anteriormente nele
+                arquivo.close()
+            else:
+                arquivo = open(caminho + nomeArq + '.csv', 'r+')  # Abra o arquivo (leitura)
+                arquivo1 = arquivo.readlines()
+                arquivo1.append(head+str(recordId) + ';' + str(processName) + ';' + str(processNumber) + ';' + str(startTime) + ';' + str(
+                        startDate) + ';' + str(stopTime) +
+                    ';' + str(stopDate) + ';' + str(snode) + ';' + str(completionCode) + ';' + str(messageId) + ';' + str(
+                        messageText) + ';' + str(srcFile) +
+                    ';' + str(destFile) + ';' + str(bytesWritten) + '\n')
+                arquivo = open(caminho + nomeArq + '.csv', 'w+')  # Abre novamente o arquivo (escrita)
+                arquivo.writelines(arquivo1)
+
+            progresso(totReg, contReg)
+            e = int(time.time() - start_time)
+            elapsed_time = ("{:02d}:{:02d}:{:02d}".format(e // 3600, (e % 3600 // 60), e % 60))
+
+    if contReg == totReg:
+        messagebox.showinfo("Mensagem", "Relatório gerado com sucesso!!!\n Linhas Processadas: {}\n Dados processados: {}\n Tempo do processo: {}".format(contLinha,totReg,elapsed_time))
+        print("\n\nRelatório gerado com sucesso!!! Tempo do processo: " + elapsed_time)
+
+def gerarArquivoUnix():
+    start_time = time.time()
+    contLinha = 0
+    recordId = []
+    processName = []
+    processNumber = []
+    startTime = []
+    startDate = []
+    stopTime = []
+    stopDate = []
+    snode = []
+    completionCode = []
+    messageId = []
+    shortText = []
+    messageText = []
+    srcFile = []
+    destFile = []
+    bytesWritten = []
+    arquivo = open(nomeArquivo, 'r+')
+    contReg = 0
+
+    with arquivo as f:
+        totReg = f.read().count('Record Id')
+    arquivo.close()
+
+    arquivo = open(nomeArquivo, 'r+')
+    for linha in arquivo:
+        contLinha += 1
+        if linha.__contains__('PROCESS RECORD   Record Id =>'):
+            recordId = linha.replace(' ', '').replace('PROCESSRECORDRecordId=>', '').replace('\n', '')
+            # print(recordId)
+        if linha.__contains__('EVENT RECORD     Record Id =>'):
+            recordId = linha.replace(' ', '').replace('EVENTRECORDRecordId=>', '').replace('\n', '')
+            # print(recordId)
+        if linha.__contains__('Process Name     =>'):
+            processName = linha.replace(' ', '').replace('ProcessName=>', '').replace('StatLogDate=>', ';').split(';')[0]
+            # print(processName)
+        if linha.__contains__('Process Number   =>'):
+            processNumber = \
+            linha.replace(' ', '').replace('ProcessNumber=>', '').replace('StatLogTime=>', ';').split(';')[0]
+            # print(processNumber)
+        if linha.__contains__('Step Start Time  =>'):
+            startTime = linha.replace(' ', '').replace('StepStartTime=>', ';').replace('StepStartDate=>', '').split(';')[1].replace('\n', '')
+            # print(startTime)
+        if linha.__contains__('Step Start Date  =>'):
+            startDate = linha.replace(' ', '').replace('StepStartDate=>', '').replace('StepStartTime=>', ';').split(';')[
+                0]
+            # print(startDate)
+        if linha.__contains__('Step Stop Time   =>'):
+            stopTime = linha.replace(' ', '').replace('StepStopTime=>', ';').replace('StepStopDate=>', '').split(';')[1].replace('\n', '')
+            # print(stopTime)
+        if linha.__contains__('Step Stop Date   =>'):
+            stopDate = linha.replace(' ', '').replace('StepStopDate=>', '').replace('StepStopTime=>', ';').split(';')[
+                0]
+            # print(stopDate)
+        if linha.__contains__('SNODE            =>'):
+            snode = linha.replace(' ', '').replace('SNODE=>', '').replace('\n', '')
+            # print(snode)
+        if linha.__contains__('Completion Code  =>'):
+            completionCode = linha.replace(' ', '').replace('CompletionCode=>', '').replace('\n', '')
+            # print(completionCode)
+        if linha.__contains__('Message Id       =>'):
+            messageId = linha.replace(' ', '').replace('MessageId=>', '').replace('\n', '')
+            # print(messageId)
+        if linha.__contains__('Short Text       =>'):
+            shortText = linha.replace('Short Text       =>', '').replace('\n', '')
+            # print(messageText)
+        if linha.__contains__('Message Text     =>'):
+            messageText = linha.replace('Message Text     =>', '').replace('\n', '')
+            # print(messageText)
+        if linha.__contains__('Src  File        =>'):
+            srcFile = linha.replace(' ', '').replace('SrcFile=>', '').replace('\n', '')
+            # print(srcFile)
+        if linha.__contains__('Dest File        =>'):
+            destFile = linha.replace(' ', '').replace('DestFile=>', '').replace('\\', '/').replace('\n', '')
+            # print(destFile)
+        if linha.__contains__('Bytes Written=>'):
+            bytesWritten = linha.replace(' ', '').replace('BytesWritten=>', ';').replace('BytesRead=>', '').split(';')[
+                1].replace('\n', '')
+
+        # print(bytesWritten)
+        if linha.__contains__('-------------------------------------------------------------------------------'):
+            nomeArq = (now.replace('/', '') + '_' + 'B2BCD_STATISTICS_UNIX')
+            caminho = ("c:/Users/" + username + "/Desktop/")
+            contReg += 1
+            try:
+                #arquivo = open(caminho + nomeArq + '.csv', 'r+')  # Abra o arquivo (leitura)
+                arquivo = open(caminho + nomeArq + '.txt', 'r+')  # Abra o arquivo (leitura)
+            except FileNotFoundError:
+                #arquivo = open(caminho + nomeArq + '.csv', 'w+')
+                arquivo = open(caminho + nomeArq + '.txt', 'w+')
+
+            head = ("RecordId;Process Name;Process Number;Start Time;Start Date;Stop Time;Stop Date;SNODE;Completion Code;"
+                "Message Id;Short Text;Message Text;src File;Dest File;bytes Written\n")
+            arquivo1 = arquivo.readlines()
+            if arquivo1.__contains__(head):
+                arquivo1.append(
+                    str(recordId) + ';' + str(processName) + ';' + str(processNumber) + ';' + str(startTime) + ';' + str(
+                        startDate) + ';' + str(stopTime) +
+                    ';' + str(stopDate) + ';' + str(snode) + ';' + str(completionCode) + ';' + str(messageId) + ';' + str(shortText)+
+                    ';' + str(messageText) + ';' + str(srcFile) +
+                    ';' + str(destFile) + ';' + str(bytesWritten) + '\n')  # insira seu conteúdo
+                #arquivo = open(caminho + nomeArq + '.csv', 'w+')  # Abre novamente o arquivo (escrita)
+                arquivo = open(caminho + nomeArq + '.txt', 'w+')  # Abre novamente o arquivo (escrita)
+                arquivo.writelines(arquivo1)  # escreva o conteúdo criado anteriormente nele
+                arquivo.close()
+            else:
+                #arquivo = open(caminho + nomeArq + '.csv', 'r+')  # Abra o arquivo (leitura)
+                arquivo = open(caminho + nomeArq + '.txt', 'r+')  # Abra o arquivo (leitura)
+                arquivo1 = arquivo.readlines()
+                arquivo1.append(head+str(recordId) + ';' + str(processName) + ';' + str(processNumber) + ';' + str(startTime) + ';' + str(
+                        startDate) + ';' + str(stopTime) +
+                    ';' + str(stopDate) + ';' + str(snode) + ';' + str(completionCode) + ';' + str(messageId) + ';' + str(shortText)+
+                    ';' + str(messageText) + ';' + str(srcFile) +
+                    ';' + str(destFile) + ';' + str(bytesWritten) + '\n')
+                #arquivo = open(caminho + nomeArq + '.csv', 'w+')  # Abre novamente o arquivo (escrita)
+                arquivo = open(caminho + nomeArq + '.txt', 'w+')  # Abre novamente o arquivo (escrita)
+                arquivo.writelines(arquivo1)
+
+            progresso(totReg, contReg)
+            e = int(time.time() - start_time)
+            elapsed_time = ("{:02d}:{:02d}:{:02d}".format(e // 3600, (e % 3600 // 60), e % 60))
+
+    if contReg == totReg:
+        messagebox.showinfo("Mensagem", "Relatório gerado com sucesso!!!\n Linhas Processadas: {}\n Dados processados: {}\n Tempo do processo: {}".format(contLinha,totReg,elapsed_time))
+        print("\n\nRelatório gerado com sucesso!!! Tempo do processo: " + elapsed_time)
+
+def button1Click(self):
+    status = Label(root, text="\nGerando arquivo - Aguarde...\n\nQuando o Processo terminar você será avisado!")
+    status.pack()
+
+def abreArquivoWin():
+    global nomeArquivo
+    # retorna o NOME de um arquivo
+    nomeArquivo = askopenfilename(initialdir="",
+                                  filetypes=(("Text File","*.log",), ("All Files", "*.*")),
+                                  title="Escolha o arquivo - Windows...")
+    if nomeArquivo == "":
+        messagebox.showinfo("Mensagem", "Nenhum arquivo selecionado. Escolha um arquivo")
+    else:
+        label = ttk.Label(separator, text=nomeArquivo, font=("Helvetica", 10), foreground="red")
+        label.pack()
+        btn = ttk.Button(root, text="Gerar Relatório", command=gerarArquivoWin)
+        btn.pack()
+        btn.bind("<Button-1>", button1Click)
+
+def abreArquivoUnix():
+    global nomeArquivo
+    # retorna o NOME de um arquivo
+    nomeArquivo = askopenfilename(initialdir="",
+                                  filetypes=(("Text File", "*.txt"), ("All Files", "*.*")),
+                                  title="Escolha o arquivo - Linux...")
+    if nomeArquivo == "":
+        messagebox.showinfo("Mensagem", "Nenhum arquivo selecionado. Escolha um arquivo")
+    else:
+        ttk.Label(separator,text=nomeArquivo, font=("Helvetica", 10), foreground="red").pack()
+        btn = ttk.Button(root, text="Gerar Relatório", command=gerarArquivoUnix)
+        btn.pack()
+        btn.bind("<Button-1>", button1Click)
+
+
+separator1.pack(fill=X, padx=5)
+
+R1 = Radiobutton(text = "Assessment CD Windows",value=1, command=abreArquivoWin).pack(anchor = W)
+R2 = Radiobutton(text = "Assessment CD Linux",value=2, command=abreArquivoUnix).pack(anchor = W )
+
+separator.pack(fill=X, padx=5)
+
+# Menu Bar
+menu = Menu(root)
+root.config(menu=menu)
+file = Menu(menu)
+file.add_command(label='Abrir - Assessment CD Windows',command=abreArquivoWin)
+file.add_command(label='Abrir - Assessment CD Linux',command=abreArquivoUnix)
+file.add_command(label='Sair', command=lambda: root.destroy())
+menu.add_cascade(label='Arquivo', menu=file)
+
+
+
+root.mainloop()
